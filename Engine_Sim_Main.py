@@ -3,7 +3,7 @@ import numpy as np
 from PyQt5.QtWidgets import QDialog, QApplication, QFileDialog, QMessageBox
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-
+import matplotlib.pyplot as plt
 from Engine_Sim_GUI import Ui_Dialog
 from Engine_Sim_Values import EngineSimValues
 
@@ -33,11 +33,24 @@ class PlotCanvas(FigureCanvas):
         self.ax.set_xlabel('Stations')
         self.ax.set_ylabel('Pressure')
         self.ax.grid(True)
+        
         self.draw()
 
-    def plot_contour(self):
+    def plot_contour(self, xlist, ylist,altitude, machnumber):
         #insert rishi code
-        return None
+        self.X, self.Y = np.meshgrid(xlist, ylist)
+        self.Z = np.sqrt((self.X)**2 + (self.Y)**2) #Z must be a 2D array for this to work
+        self.ax = self.figure.add_subplot(111)
+        self.ax.set_title('Net Thrust Graph')
+        #self.ax.contourf(xlist, ylist, self.Z)
+        self.ax.contourf(self.X, self.Y, self.Z)
+        self.ax.set_ylabel('Altitude[m]')
+        self.ax.set_xlabel('Mach Number')
+        self.ax.grid(True)
+        self.ax.plot(machnumber,altitude,'wo')
+        self.draw()
+        
+
 
 
 class EngineSim(QDialog):
@@ -115,6 +128,7 @@ class EngineSim(QDialog):
         self.upload_values()
         self.plot_temperature()
         self.plot_pressure()
+        self.plot_contour()
 
         return 0
 
@@ -263,9 +277,14 @@ class EngineSim(QDialog):
 
     def plot_contour(self):
         #do tomorrow
+        self.v.xlist = np.linspace(0.0,1.2,19)
+        self.v.ylist = np.linspace(0,5200,19)
+        self.v.machnumber = self.v.Ma
+        self.v.altitude = self.v.h
         self.c_plot.figure.clf()
-        self.c_plot.plot_contour()
-        return None
+        self.c_plot.plot_contour(self.v.xlist, self.v.ylist, self.v.altitude,self.v.machnumber)
+        
+
 
 
 
