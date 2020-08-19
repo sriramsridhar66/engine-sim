@@ -1,5 +1,3 @@
-from Atmosisa import atmosisa
-
 class EngineSimValues():
     def __init__(self):
         super(EngineSimValues, self).__init__()
@@ -12,8 +10,11 @@ class EngineSimValues():
         self.cp_comb = None
         self.cp_av = None
         self.R = 287.05
-        self.h = 3000 # Flight altitude
-        self.T, self.a, self.P, self.rho = atmosisa(self.h)
+        self.h = None # Flight altitude
+        self.T = None
+        self.a = None
+        self.P = None
+        self.rho = None
         self.FHV = None # Fuel heating value
         self.T04 = None
         self.T08 = None

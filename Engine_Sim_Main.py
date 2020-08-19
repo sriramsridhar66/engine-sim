@@ -1,18 +1,22 @@
 import sys
 import numpy as np
 from PyQt5.QtWidgets import QDialog, QApplication, QFileDialog, QMessageBox
+from PyQt5.QtGui import QPixmap
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 
 from Engine_Sim_GUI import Ui_Dialog
 from Engine_Sim_Values import EngineSimValues
+from Atmosisa import atmosisa
+
 
 class PlotCanvas(FigureCanvas):
     def __init__(self, parent, width=None, height=None, dpi=100):
         if width is None:
-            width = parent.width()/100
+            width = parent.width() / 100
         if height is None:
-            height = parent.height()/100
+            height = parent.height() / 100
         fig = Figure(figsize=(width, height), dpi=dpi)
         FigureCanvas.__init__(self, fig)
         self.setParent(parent)
@@ -21,7 +25,7 @@ class PlotCanvas(FigureCanvas):
     def plot_temperature(self, stations, Tplot):
         self.ax = self.figure.add_subplot(111)
         self.ax.set_title('Temperature[K]')
-        self.ax.plot(stations, Tplot)
+        self.ax.plot(stations, Tplot, 'bo-')
         self.ax.set_ylabel('Temperature')
         self.ax.grid(True)
         self.draw()
@@ -29,15 +33,26 @@ class PlotCanvas(FigureCanvas):
     def plot_pressure(self, stations, Pplot):
         self.ax = self.figure.add_subplot(111)
         self.ax.set_title('Pressure[Pa]')
-        self.ax.plot(stations, Pplot)
-        self.ax.set_xlabel('Stations')
+        self.ax.plot(stations, Pplot, 'bo-')
+        self.ax.set_xlabel('Station')
         self.ax.set_ylabel('Pressure')
         self.ax.grid(True)
         self.draw()
 
-    def plot_contour(self):
-        #insert rishi code
-        return None
+
+    def plot_contour(self, xlist, ylist, altitude, machnumber):
+        # insert rishi code
+        self.X, self.Y = np.meshgrid(xlist, ylist)
+        self.Z = np.sqrt((self.X) ** 2 + (self.Y) ** 2)  # Z must be a 2D array for this to work
+        self.ax = self.figure.add_subplot(111)
+        self.ax.set_title('Net Thrust Graph')
+        # self.ax.contourf(xlist, ylist, self.Z)
+        self.ax.contourf(self.X, self.Y, self.Z)
+        self.ax.set_ylabel('Altitude[m]')
+        self.ax.set_xlabel('Mach Number')
+        self.ax.grid(True)
+        self.ax.plot(machnumber, altitude, 'wo')
+        self.draw()
 
 
 class EngineSim(QDialog):
@@ -49,27 +64,59 @@ class EngineSim(QDialog):
         self.ui.setupUi(self)
         t_plot_window = self.ui.graphicsView
         p_plot_window = self.ui.graphicsView_2
-        c_plot_window = self.ui.graphicsView_3
+        #c_plot_window = self.ui.graphicsView_3
         self.t_plot = PlotCanvas(t_plot_window)
         self.p_plot = PlotCanvas(p_plot_window)
-        self.c_plot = PlotCanvas(c_plot_window)
+        #self.c_plot = PlotCanvas(c_plot_window)
+        self.make_uneditable()
+        pixmap = QPixmap('Ma vs A Thrust.PNG')
+        self.ui.piclabel_1.setPixmap(pixmap)
         self.assign_widgets()
+
         self.show()
+
+    def make_uneditable(self):
+        self.ui.lineEdit_4.setReadOnly(True)
+        self.ui.lineEdit_11.setReadOnly(True)
+        self.ui.lineEdit_12.setReadOnly(True)
+        self.ui.lineEdit_13.setReadOnly(True)
+        self.ui.lineEdit_36.setReadOnly(True)
+        self.ui.lineEdit_14.setReadOnly(True)
+        self.ui.lineEdit_15.setReadOnly(True)
+        self.ui.lineEdit_16.setReadOnly(True)
+        self.ui.lineEdit_17.setReadOnly(True)
+        self.ui.lineEdit_37.setReadOnly(True)
+        self.ui.plotpointEdit_1.setReadOnly(True)
+        self.ui.plotpointEdit_2.setReadOnly(True)
+        self.ui.plotpointEdit_3.setReadOnly(True)
+        self.ui.plotpointEdit_4.setReadOnly(True)
+        self.ui.plotpointEdit_5.setReadOnly(True)
+        self.ui.plotpointEdit_6.setReadOnly(True)
+        self.ui.plotpointEdit_7.setReadOnly(True)
+        self.ui.plotpointEdit_8.setReadOnly(True)
+        self.ui.plotpointEdit_9.setReadOnly(True)
+        self.ui.plotpointEdit_10.setReadOnly(True)
+        self.ui.plotpointEdit_11.setReadOnly(True)
+        self.ui.plotpointEdit_12.setReadOnly(True)
+        self.ui.plotpointEdit_13.setReadOnly(True)
+        self.ui.plotpointEdit_14.setReadOnly(True)
+        self.ui.plotpointEdit_15.setReadOnly(True)
+        self.ui.plotpointEdit_16.setReadOnly(True)
+        self.ui.plotpointEdit_17.setReadOnly(True)
+        self.ui.plotpointEdit_18.setReadOnly(True)
+
+
 
     def assign_widgets(self):
         self.ui.pushButton_2.clicked.connect(lambda: exit_app())
         self.ui.pushButton.clicked.connect(lambda: self.update_app())
-        self.ui.horizontalSlider.valueChanged.connect(lambda: self.get_altitude())
         self.ui.radioButton.clicked.connect(lambda: self.afterburner_selection(False))
         self.ui.radioButton_3.clicked.connect(lambda: self.afterburner_selection(True))
 
-    def get_altitude(self):
-        self.v.h = float(self.ui.horizontalSlider.value()) * 1000
-        self.update_app()
 
     def afterburner_selection(self, boolean):
         self.ab = boolean
-        if boolean is True:
+        if self.ab is True:
             self.v.stations = [0, 1, 2, 3, 4, 5, 6, 7, 8]
         else:
             self.v.stations = [0, 1, 2, 3, 4, 5, 6, 7]
@@ -77,23 +124,24 @@ class EngineSim(QDialog):
 
     def update_app(self):
         self.v.mdot = float(self.ui.lineEdit_1.text())
+        self.v.h = float(self.ui.lineEdit_26.text())
         self.v.Ma = float(self.ui.lineEdit_2.text())
         self.v.gamma_air = float(self.ui.lineEdit_3.text())
         self.v.gamma_comb = float(self.ui.lineEdit_5.text())
         self.v.cp_air = float(self.ui.lineEdit_31.text())
         self.v.cp_comb = float(self.ui.lineEdit_6.text())
-        self.v.cp_av = (self.v.cp_air+self.v.cp_comb)/2
+        self.v.cp_av = (self.v.cp_air + self.v.cp_comb) / 2
         self.v.FHV = float(self.ui.lineEdit_8.text())
         self.v.T04 = float(self.ui.lineEdit_9.text())
         self.v.r_compressor = float(self.ui.lineEdit_60.text())
-        self.v.pi_diff = float(self.ui.lineEdit_10.text())
-        self.v.eta_comp = float(self.ui.lineEdit_18.text())
-        self.v.pi_comp = float(self.ui.lineEdit_19.text())
-        self.v.eta_comb = float(self.ui.lineEdit_20.text())
-        self.v.pi_comb = float(self.ui.lineEdit_32.text())
-        self.v.eta_turb = float(self.ui.lineEdit_21.text())
-        self.v.eta_noz = float(self.ui.lineEdit_22.text())
-        self.v.eta_m = float(self.ui.lineEdit_61.text())
+        self.v.pi_diff = float(self.ui.lineEdit_21.text())
+        self.v.eta_comp = float(self.ui.lineEdit_10.text())
+        self.v.pi_comp = float(self.ui.lineEdit_22.text())
+        self.v.eta_comb = float(self.ui.lineEdit_18.text())
+        self.v.pi_comb = float(self.ui.lineEdit_61.text())
+        self.v.eta_turb = float(self.ui.lineEdit_19.text())
+        self.v.eta_noz = float(self.ui.lineEdit_20.text())
+        self.v.eta_m = float(self.ui.lineEdit_27.text())
         if self.ab is True:
             self.v.T08 = float(self.ui.lineEdit_25.text())
             self.v.eta_ab = float(self.ui.lineEdit_23.text())
@@ -109,28 +157,24 @@ class EngineSim(QDialog):
         self.nozzle_throat_calcs()
         if self.ab is True:
             self.afterburner_calcs()
-            self.v.stations = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-        else:
-            self.v.stations = [0, 1, 2, 3, 4, 5, 6, 7]
         self.upload_values()
         self.plot_temperature()
         self.plot_pressure()
+        #self.plot_contour()
 
-        return 0
 
     def free_stream_calcs(self):
+        self.v.T, self.v.a, self.v.P, self.v.rho = atmosisa(self.v.h)
         self.v.P00 = self.v.P * (1 + self.v.Ma ** 2 * ((self.v.gamma_air - 1) / 2)) ** (
-                    self.v.gamma_air / (self.v.gamma_air - 1))
+                self.v.gamma_air / (self.v.gamma_air - 1))
         self.v.T00 = self.v.T * (1 + self.v.Ma ** 2 * ((self.v.gamma_air - 1) / 2))
         self.v.v0 = self.v.Ma * self.v.a
 
     def inlet_calcs(self):
         self.v.mdot1 = self.v.mdot
         self.v.P01 = self.v.P00
-        self.v.T01 = self.v.T00 # Nowork or heat transfer
-        self.v.Ma1 = 0.8 # Set to inlet limit
-        self.v.MFP = np.sqrt(self.v.gamma_air) * self.v.Ma1 * (1 + self.v.Ma1 ** 2 * ((self.v.gamma_air - 1) / 2)) ** (
-                (self.v.gamma_air + 1) / (2 * (1 - self.v.gamma_air)))  # Mass Flow Parameter
+        self.v.T01 = self.v.T00  # Nowork or heat transfer
+        self.v.Ma1 = 0.8  # Set to inlet limit
         self.v.MFP = np.sqrt(self.v.gamma_air) * self.v.Ma1 * (1 + self.v.Ma1 ** 2 * ((self.v.gamma_air - 1) / 2)) ** (
                 (self.v.gamma_air + 1) / (2 * (1 - self.v.gamma_air)))  # Mass Flow Parameter
         self.v.A1 = (self.v.mdot1 * np.sqrt(self.v.R * self.v.T01)) / (self.v.MFP * self.v.P01)  # Inlet area
@@ -147,23 +191,24 @@ class EngineSim(QDialog):
     def compressor_exit_calcs(self):
         self.v.P03 = self.v.P02 * self.v.pi_comp
         self.v.T03 = self.v.T02 * (
-                    1 + (((self.v.pi_comp ** ((self.v.gamma_air - 1) / self.v.gamma_air)) - 1) / self.v.eta_comp))
+                1 + (((self.v.pi_comp ** ((self.v.gamma_air - 1) / self.v.gamma_air)) - 1) / self.v.eta_comp))
         self.v.mdot3 = self.v.mdot2  # Continuity
         self.v.pwr3 = self.v.mdot3 * self.v.cp_air * (self.v.T03 - self.v.T02)  # Power required by compressor
 
     def combustor_calcs(self):
         self.v.P04 = self.v.P03 * self.v.pi_comb
         self.v.FARcomb = ((self.v.T04 / self.v.T03) - 1) / (
-                    ((self.v.eta_comb * self.v.FHV) / (self.v.cp_av * self.v.T03)) - (
-                        self.v.T04 / self.v.T03))  # From NASA
+                ((self.v.eta_comb * self.v.FHV) / (self.v.cp_av * self.v.T03)) - (
+                self.v.T04 / self.v.T03))  # From NASA
         self.v.mdotfuel = self.v.FARcomb * self.v.mdot3
         self.v.mdot4 = self.v.mdot3 + self.v.mdotfuel
 
     def turbine_calcs(self):
         self.v.pwr5 = self.v.eta_m * self.v.pwr3  # Power suppied to turbine is equal to power from compressor * mechanical efficiency
         self.v.T05 = ((self.v.mdot4 * self.v.cp_comb * self.v.T04) - self.v.pwr5) / (
-                    self.v.mdot4 * self.v.cp_comb)  # From power balancing
-        self.v.P05 = self.v.P04 * (1 - ((1 - self.v.T05 / self.v.T04) / self.v.eta_turb)) ** (self.v.gamma_comb / (self.v.gamma_comb - 1))
+                self.v.mdot4 * self.v.cp_comb)  # From power balancing
+        self.v.P05 = self.v.P04 * (1 - ((1 - self.v.T05 / self.v.T04) / self.v.eta_turb)) ** (
+                    self.v.gamma_comb / (self.v.gamma_comb - 1))
         self.v.mdot5 = self.v.mdot4  # Continuity
 
     def nozzle_entry_calcs(self):
@@ -182,10 +227,10 @@ class EngineSim(QDialog):
         else:
             self.v.P7 = self.v.P07 / self.v.pi_noz
         self.v.Q = np.sqrt((2 / self.v.R) * (self.v.gamma_comb / (self.v.gamma_comb - 1)) * (
-                    (((self.v.P07 / self.v.P7) ** ((self.v.gamma_comb - 1) / self.v.gamma_comb) - 1) * (
-                            (self.v.P07 / self.v.P7) ** (2 * (((self.v.gamma_comb - 1) / self.v.gamma_comb) - 1)))) / (
-                                (self.v.P07 / self.v.P7) ** (
-                                (self.v.gamma_comb - 1) / self.v.gamma_comb))))
+                (((self.v.P07 / self.v.P7) ** ((self.v.gamma_comb - 1) / self.v.gamma_comb) - 1) * (
+                        (self.v.P07 / self.v.P7) ** (2 * (((self.v.gamma_comb - 1) / self.v.gamma_comb) - 1)))) / (
+                        (self.v.P07 / self.v.P7) ** (
+                        (self.v.gamma_comb - 1) / self.v.gamma_comb))))
         self.v.A7 = (self.v.mdot7 * np.sqrt(self.v.T07)) / (self.v.Q * self.v.P07)
         self.v.v7 = np.sqrt(self.v.T07) * np.sqrt(((2 * self.v.R) / ((self.v.gamma_comb - 1) / self.v.gamma_comb)) * (
                 ((self.v.P07 / self.v.P7) ** ((self.v.gamma_comb - 1) / self.v.gamma_comb) - 1) / (
@@ -197,8 +242,8 @@ class EngineSim(QDialog):
     def afterburner_calcs(self):
         self.v.P08 = self.v.P07 * self.v.pi_ab
         self.v.FARab = ((self.v.T08 / self.v.T07) - 1) / (
-                    ((self.v.eta_ab * self.v.FHV) / (self.v.cp_comb * self.v.T07)) - (
-                        self.v.T08 / self.v.T07))  # From NASA
+                ((self.v.eta_ab * self.v.FHV) / (self.v.cp_comb * self.v.T07)) - (
+                self.v.T08 / self.v.T07))  # From NASA
         self.v.mdotfuelab = self.v.FARab * self.v.mdot7
         self.v.mdot8 = self.v.mdotfuelab + self.v.mdot7
         self.v.pi_nozab = self.v.P08 / self.v.P
@@ -207,10 +252,10 @@ class EngineSim(QDialog):
         else:
             self.v.P8 = self.v.P08 / self.v.pi_noz
         self.v.Qab = np.sqrt((2 / self.v.R) * (self.v.gamma_comb / (self.v.gamma_comb - 1)) * (
-                    (((self.v.P08 / self.v.P8) ** ((self.v.gamma_comb - 1) / self.v.gamma_comb) - 1) * (
-                            (self.v.P08 / self.v.P8) ** (2 * (((self.v.gamma_comb - 1) / self.v.gamma_comb) - 1)))) / (
-                                (self.v.P08 / self.v.P8) ** (
-                                (self.v.gamma_comb - 1) / self.v.gamma_comb))))
+                (((self.v.P08 / self.v.P8) ** ((self.v.gamma_comb - 1) / self.v.gamma_comb) - 1) * (
+                        (self.v.P08 / self.v.P8) ** (2 * (((self.v.gamma_comb - 1) / self.v.gamma_comb) - 1)))) / (
+                        (self.v.P08 / self.v.P8) ** (
+                        (self.v.gamma_comb - 1) / self.v.gamma_comb))))
         self.v.A8 = (self.v.mdot8 * np.sqrt(self.v.T08)) / (self.v.Qab * self.v.P08)
         self.v.v8 = np.sqrt(self.v.T08) * np.sqrt(((2 * self.v.R) / ((self.v.gamma_comb - 1) / self.v.gamma_comb)) * (
                 ((self.v.P08 / self.v.P8) ** ((self.v.gamma_comb - 1) / self.v.gamma_comb) - 1) / (
@@ -219,7 +264,6 @@ class EngineSim(QDialog):
         self.v.Fnab = self.v.Fgab - (self.v.mdot * self.v.v0)
         self.v.SFCab = ((self.v.mdotfuel + self.v.mdotfuelab) / self.v.Fnab) * 1000  # %g / Ns
 
-
     def upload_values(self):
         try:
             self.ui.lineEdit_4.setText('{:.6f}'.format(self.v.A7))
@@ -227,18 +271,40 @@ class EngineSim(QDialog):
             self.ui.lineEdit_12.setText('{:.6f}'.format(self.v.Fg))
             self.ui.lineEdit_13.setText('{:.6f}'.format(self.v.Fn))
             self.ui.lineEdit_36.setText('{:.6f}'.format(self.v.SFC))
+            self.ui.plotpointEdit_1.setText('{:.2f}'.format(self.v.T00))
+            self.ui.plotpointEdit_2.setText('{:.2f}'.format(self.v.T01))
+            self.ui.plotpointEdit_3.setText('{:.2f}'.format(self.v.T02))
+            self.ui.plotpointEdit_4.setText('{:.2f}'.format(self.v.T03))
+            self.ui.plotpointEdit_5.setText('{:.2f}'.format(self.v.T04))
+            self.ui.plotpointEdit_6.setText('{:.2f}'.format(self.v.T05))
+            self.ui.plotpointEdit_7.setText('{:.2f}'.format(self.v.T06))
+            self.ui.plotpointEdit_8.setText('{:.2f}'.format(self.v.T07))
+            self.ui.plotpointEdit_10.setText('{:.2f}'.format(self.v.P00))
+            self.ui.plotpointEdit_11.setText('{:.2f}'.format(self.v.P01))
+            self.ui.plotpointEdit_12.setText('{:.2f}'.format(self.v.P02))
+            self.ui.plotpointEdit_13.setText('{:.2f}'.format(self.v.P03))
+            self.ui.plotpointEdit_14.setText('{:.2f}'.format(self.v.P04))
+            self.ui.plotpointEdit_15.setText('{:.2f}'.format(self.v.P05))
+            self.ui.plotpointEdit_16.setText('{:.2f}'.format(self.v.P06))
+            self.ui.plotpointEdit_17.setText('{:.2f}'.format(self.v.P07))
+
+
             if self.ab is True:
                 self.ui.lineEdit_14.setText('{:.6f}'.format(self.v.A8))
                 self.ui.lineEdit_15.setText('{:.6f}'.format(self.v.v8))
                 self.ui.lineEdit_16.setText('{:.6f}'.format(self.v.Fgab))
                 self.ui.lineEdit_17.setText('{:.6f}'.format(self.v.Fnab))
                 self.ui.lineEdit_37.setText('{:.6f}'.format(self.v.SFCab))
+                self.ui.plotpointEdit_9.setText('{:.2f}'.format(self.v.T08))
+                self.ui.plotpointEdit_18.setText('{:.2f}'.format(self.v.P08))
             else:
                 self.ui.lineEdit_14.setText('None')
                 self.ui.lineEdit_15.setText('None')
                 self.ui.lineEdit_16.setText('None')
                 self.ui.lineEdit_17.setText('None')
                 self.ui.lineEdit_37.setText('None')
+                self.ui.plotpointEdit_9.setText('None')
+                self.ui.plotpointEdit_18.setText('None')
         except Exception as error:
             print(error)
             QApplication.restoreOverrideCursor()
@@ -246,15 +312,18 @@ class EngineSim(QDialog):
 
     def plot_temperature(self):
         if self.ab is True:
-            self.v.Tplot = [self.v.T00, self.v.T01, self.v.T02, self.v.T03, self.v.T04, self.v.T05, self.v.T06, self.v.T07, self.v.T08]
+            self.v.Tplot = [self.v.T00, self.v.T01, self.v.T02, self.v.T03, self.v.T04, self.v.T05, self.v.T06,
+                            self.v.T07, self.v.T08]
         else:
-            self.v.Tplot = [self.v.T00, self.v.T01, self.v.T02, self.v.T03, self.v.T04, self.v.T05, self.v.T06, self.v.T07]
+            self.v.Tplot = [self.v.T00, self.v.T01, self.v.T02, self.v.T03, self.v.T04, self.v.T05, self.v.T06,
+                            self.v.T07]
         self.t_plot.figure.clf()
         self.t_plot.plot_temperature(self.v.stations, self.v.Tplot)
 
     def plot_pressure(self):
         if self.ab is True:
-            self.v.Pplot = [self.v.P00, self.v.P01, self.v.P02, self.v.P03, self.v.P04, self.v.P05, self.v.P06, self.v.P07, self.v.P08]
+            self.v.Pplot = [self.v.P00, self.v.P01, self.v.P02, self.v.P03, self.v.P04, self.v.P05, self.v.P06,
+                            self.v.P07, self.v.P08]
         else:
             self.v.Pplot = [self.v.P00, self.v.P01, self.v.P02, self.v.P03, self.v.P04, self.v.P05, self.v.P06,
                             self.v.P07]
@@ -262,11 +331,13 @@ class EngineSim(QDialog):
         self.p_plot.plot_pressure(self.v.stations, self.v.Pplot)
 
     def plot_contour(self):
-        #do tomorrow
+        # do tomorrow
+        self.v.xlist = np.linspace(0.0, 1.2, 19)
+        self.v.ylist = np.linspace(0, 5200, 19)
+        self.v.machnumber = self.v.Ma
+        self.v.altitude = self.v.h
         self.c_plot.figure.clf()
-        self.c_plot.plot_contour()
-        return None
-
+        self.c_plot.plot_contour(self.v.xlist, self.v.ylist, self.v.altitude, self.v.machnumber)
 
 
 def exit_app():
@@ -280,12 +351,14 @@ def no_file():
     msg.exec_()
     return None
 
+
 def bad_file():
     msg = QMessageBox()
     msg.setText('Unable to Process the Selected File.')
     msg.setWindowTitle("Bad File")
     msg.exec_()
     return None
+
 
 if __name__ == "__main__":
     app = QApplication.instance()
